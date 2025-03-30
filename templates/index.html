@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCQ Generator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Upload PDF to Generate MCQs</h1>
+    
+    <input type="file" id="pdfUpload" accept="application/pdf">
+    <button onclick="uploadPDF()">Generate MCQs</button>
+
+    <div id="mcqContainer"></div>
+
+    <script>
+        async function uploadPDF() {
+            let fileInput = document.getElementById("pdfUpload");
+            let file = fileInput.files[0];
+            if (!file) {
+                alert("Please select a PDF file.");
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append("pdf_file", file);
+
+            let response = await fetch("/generate_mcqs", {
+                method: "POST",
+                body: formData
+            });
+
+            let data = await response.json();
+            console.log("✅ Debug Data:", data);
+
+            if (data.error) {
+                alert("Error: " + data.error);
+                return;
+            }
+
+            displayQuestions(data.mcqs);
+        }
+
+        function displayQuestions(mcqs) {
+            let container = document.getElementById("mcqContainer");
+            container.innerHTML = "";
+
+            mcqs.forEach((mcq, index) => {
+                let div = document.createElement("div");
+                div.innerHTML = `
+                    <h3>${index + 1}. ${mcq.question}</h3>
+                    ${mcq.options.map((opt, i) => `
+                        <label>
+                            <input type="radio" name="q${index}" value="${opt}"> ${opt}
+                        </label><br>
+                    `).join('')}
+                    <button onclick="checkAnswer(${index}, '${mcq.answer}')">Submit</button>
+                    <p id="answer${index}" style="display:none;">Correct Answer: <b>${mcq.answer}</b></p>
+                    <hr>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function checkAnswer(index, correctAnswer) {
+            let selectedOption = document.querySelector(`input[name="q${index}"]:checked`);
+            if (!selectedOption) {
+                alert("Please select an option.");
+                return;
+            }
+
+            document.getElementById(`answer${index}`).style.display = "block";
+        }
+    </script>
+</body>
+</html>
